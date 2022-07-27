@@ -20,9 +20,8 @@
 #include <argos3/core/control_interface/ci_controller.h>
 /* Definition of the differential steering actuator */
 #include <argos3/plugins/robots/pi-puck/control_interface/ci_pipuck_differential_drive_actuator.h>
-#include <argos3/plugins/robots/pi-puck/control_interface/ci_pipuck_ground_colour_sensor.h>
-/* Definition of proximity sensor */
-#include <argos3/plugins/robots/generic/control_interface/ci_proximity_sensor.h>
+/* Definition of the Pipuck range finders sensor */
+#include <argos3/plugins/robots/pi-puck/control_interface/ci_pipuck_rangefinders_sensor.h>
 
 /*
  * All the ARGoS stuff in the 'argos' namespace.
@@ -78,8 +77,9 @@ private:
 
    /* Pointer to the differential steering actuator */
    CCI_PiPuckDifferentialDriveActuator* pcWheels;
-   /* Pointer to the e-puck proximity sensor */
-   CCI_ProximitySensor* m_pcProximity;
+   /* Pointer to the pi-puck proximity sensor */
+   CCI_PiPuckRangefindersSensor* pcProximity;
+   /* Pointer to the pi-puck ground colour sensor */
    CCI_PiPuckGroundColourSensor* pcGroundColour;
 
    /*
