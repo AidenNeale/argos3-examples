@@ -16,8 +16,8 @@
   <!-- *************** -->
   <controllers>
 
-    <pipuck_obstacleavoidance_controller id="fdc"
-                                        library="build/controllers/pipuck_obstacleavoidance/libpipuck_obstacleavoidance.so">
+    <pipuck_foraging_controller id="fdc"
+                                        library="build/controllers/pipuck_foraging/libpipuck_foraging.so">
       <actuators>
         <pipuck_differential_drive implementation="default" />
       </actuators>
@@ -25,13 +25,13 @@
         <pipuck_rangefinders implementation="default" show_rays="true"/>
       </sensors>
       <params velocity="5" />
-    </pipuck_obstacleavoidance_controller>
+    </pipuck_foraging_controller>
 
   </controllers>
   <!-- ****************** -->
   <!-- * Loop functions * -->
   <!-- ****************** -->
-  <loop_functions library="build/loop_functions/pipuck_loop_functions/libpipuck_foraging_loop_functions"
+  <loop_functions library="build/loop_functions/pipuck_foraging_loop_functions/libpipuck_foraging_loop_functions"
                   label="pipuck_foraging_loop_functions">
     <foraging items="15"
               radius="0.1"
@@ -59,7 +59,7 @@
 
     <!--
         You can distribute entities randomly. Here, we distribute
-        10 e-pucks in this way:
+        10 pi-pucks in this way:
         - the position is uniformly distributed
         on the ground, in the square whose corners are (-2,-2) and (2,2)
         - the orientations are non-zero only when rotating around Z and chosen
