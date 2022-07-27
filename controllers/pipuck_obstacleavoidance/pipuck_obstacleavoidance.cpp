@@ -8,7 +8,7 @@
 
 CPiPuckObstacleAvoidance::CPiPuckObstacleAvoidance() :
    pcWheels(NULL),
-   m_pcProximity(NULL),
+   pcProximity(NULL),
    pcGroundColour(NULL),
    m_fWheelVelocity(2.5f) {}
 
@@ -39,7 +39,7 @@ void CPiPuckObstacleAvoidance::Init(TConfigurationNode& t_node) {
     * occurs.
     */
     pcWheels = GetActuator<CCI_PiPuckDifferentialDriveActuator>("pipuck_differential_drive");
-    pcGroundColour = GetSensor<CCI_PiPuckGroundColourSensor>("pipuck_ground_colour");
+    pcProximity = GetSensor<CCI_PiPuckRangefindersSensor>("pipuck_rangefinders");
    /*
     * Parse the configuration file
     *
@@ -55,37 +55,92 @@ void CPiPuckObstacleAvoidance::Init(TConfigurationNode& t_node) {
 
 void CPiPuckObstacleAvoidance::ControlStep() {
   pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
-   /* Get the highest reading in front of the robot, which corresponds to the closest object */
-  //  Real fMaxReadVal = m_pcProximity->GetReadings()[0];
-  //  UInt32 unMaxReadIdx = 0;
-  //  if(fMaxReadVal < m_pcProximity->GetReadings()[1]) {
-  //     fMaxReadVal = m_pcProximity->GetReadings()[1];
-  //     unMaxReadIdx = 1;
-  //  }
-  //  if(fMaxReadVal < m_pcProximity->GetReadings()[7]) {
-  //     fMaxReadVal = m_pcProximity->GetReadings()[7];
-  //     unMaxReadIdx = 7;
-  //  }
-  //  if(fMaxReadVal < m_pcProximity->GetReadings()[6]) {
-  //     fMaxReadVal = m_pcProximity->GetReadings()[6];
-  //     unMaxReadIdx = 6;
-  //  }
-  //  /* Do we have an obstacle in front? */
-  //  if(fMaxReadVal > 0.0f) {
-  //    /* Yes, we do: avoid it */
-  //    if(unMaxReadIdx == 0 || unMaxReadIdx == 1) {
-  //      /* The obstacle is on the left, turn right */
-  //      pcWheels->SetLinearVelocity(m_fWheelVelocity, 0.0f);
-  //    }
-  //    else {
-  //      /* The obstacle is on the left, turn right */
-  //      pcWheels->SetLinearVelocity(0.0f, m_fWheelVelocity);
-  //    }
-  //  }
-  //  else {
-  //    /* No, we don't: go straight */
-  //     pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
-  //  }
+  std::vector<Real> vecReadings;
+  Real Readings[8];
+  pcProximity->Visit([&vecReadings, &Readings] (const CCI_PiPuckRangefindersSensor::SInterface& s_interface)
+  {
+      vecReadings.emplace_back(s_interface.Proximity);
+      Readings[s_interface.Label] = s_interface.Proximity;
+
+      /*
+      These output phrases are useful for debugging and understanding the
+      example however cause the simulator to slow down to the sheer quantity of logging
+      performed with 50 pipucks (8 messages per range finder sensor per robot)
+      */
+
+      // std::cout << "Label: " << s_interface.Label << std::endl;
+      // std::cout << "Proximity: " << s_interface.Proximity << std::endl;
+
+      // const CCI_PiPuckRangefindersSensor::TConfiguration configuration = s_interface.Configuration;
+      // std::cout << "Configuration:" << std::endl;
+      // std::cout << "Name: " << std::get<0>(configuration) << std::endl;
+      // std::cout << "Position: " << std::get<1>(configuration) << std::endl;
+      // std::cout << "Orientation: " << std::get<2>(configuration) << std::endl;
+      // std::cout << "Range: " << std::get<3>(configuration) << std::endl;
+
+      // std::cout << std::endl;
+  });
+  Real left = 0.5;
+  Real right = 0.5;
+
+  if(Readings[0] < 0.1)
+  {
+    if(Readings[7] < 0.1)
+    {
+      left = -0.2;
+      right = 0.2;
+    }
+    else
+    {
+      if(Readings[1] < 0.1)
+      {
+        if(Readings[2] < 0.1)
+        {
+          left = -0.1;
+          right = 0.2;
+        }
+        else
+        {
+          left = -0.1;
+          right = 0.1;
+        }
+      }
+      else
+      {
+        left = 0.0;
+        right = 0.2;
+      }
+    }
+  }
+  else if(Readings[7] < 0.1)
+  {
+    if(Readings[6] < 0.1)
+    {
+      if(Readings[5] < 0.1)
+      {
+        left = 0.2;
+        right = -0.1;
+      }
+      else
+      {
+        left = 0.1;
+        right = -0.1;
+      }
+    }
+    else
+    {
+      right = 0.0;
+      left = 0.2;
+    }
+  }
+  else
+  {
+    left = 0.5;
+    right = 0.5;
+  }
+
+
+  pcWheels->SetLinearVelocity(left, right);
 }
 
 /****************************************/
