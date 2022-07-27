@@ -6,6 +6,9 @@ add_subdirectory(foraging_loop_functions)
 # Descend into the mpga_phototaxis_loop_functions directory
 add_subdirectory(mpga_loop_functions)
 
+# Descend into the pipuck_loop_functions directory
+add_subdirectory(pipuck_loop_functions)
+
 # Descend into the custom_distributions_loop_functions directory
 add_subdirectory(custom_distributions_loop_functions)
 
