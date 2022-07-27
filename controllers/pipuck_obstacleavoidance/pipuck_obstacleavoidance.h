@@ -79,8 +79,6 @@ private:
    CCI_PiPuckDifferentialDriveActuator* pcWheels;
    /* Pointer to the pi-puck proximity sensor */
    CCI_PiPuckRangefindersSensor* pcProximity;
-   /* Pointer to the pi-puck ground colour sensor */
-   CCI_PiPuckGroundColourSensor* pcGroundColour;
 
    /*
     * The following variables are used as parameters for the

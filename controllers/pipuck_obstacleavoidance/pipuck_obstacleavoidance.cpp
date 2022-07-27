@@ -9,7 +9,6 @@
 CPiPuckObstacleAvoidance::CPiPuckObstacleAvoidance() :
    pcWheels(NULL),
    pcProximity(NULL),
-   pcGroundColour(NULL),
    m_fWheelVelocity(2.5f) {}
 
 /****************************************/
