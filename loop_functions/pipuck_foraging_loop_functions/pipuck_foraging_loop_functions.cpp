@@ -43,8 +43,6 @@ void CPiPuckForagingLoopFunctions::Init(TConfigurationNode& t_node) {
   DistributeWaterSource();
   foodLocationDefined = false;
   waterLocationDefined = false;
-
-
 }
 
   /****************************************/
