@@ -41,20 +41,14 @@ void CPiPuckForaging::Init(TConfigurationNode& t_node) {
     pcWheels = GetActuator<CCI_PiPuckDifferentialDriveActuator>("pipuck_differential_drive");
     pcGround = GetSensor<CCI_PiPuckGroundColourSensor>("pipuck_ground_colour");
     pcProximity = GetSensor<CCI_PiPuckRangefindersSensor>("pipuck_rangefinders");
-   /*
-    * Parse the configuration file
-    *
-    * The user defines this part. Here, the algorithm accepts three
-    * parameters and it's nice to put them in the config file so we don't
-    * have to recompile if we want to try other settings.
-    */
-   GetNodeAttributeOrDefault(t_node, "velocity", m_fWheelVelocity, m_fWheelVelocity);
+
 }
 
 /****************************************/
 /****************************************/
 
 void CPiPuckForaging::ControlStep() {
+  getGroundColorSensor();
   pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
   std::vector<Real> vecReadings;
   Real Readings[8];
@@ -146,6 +140,27 @@ void CPiPuckForaging::ControlStep() {
 
 /****************************************/
 /****************************************/
+
+void CPiPuckForaging::readGroundColorSensor() {
+  std::vector<CColor> vecReadings;
+  setGroundColor(CColor());
+  /* Access and retrieve ground colour sensor readings from all three ground sensors */
+  pcGround->Visit([&vecReadings] (const CCI_PiPuckGroundColourSensor::SInterface& s_interface) {
+    vecReadings.emplace_back(s_interface.cColor);
+  });
+  /* Only set the ground colour if all 3 sensors are over the same colour */
+  if ((vecReadings[0] == vecReadings[1]) && (vecReadings[1] == vecReadings[2])) {
+    setGroundColor(vecReadings[0]);
+  }
+  // std::cout << "1st: " << vecReadings[0] <<
+  //             " 2nd: " << vecReadings[1] <<
+  //             " 3rd: " << vecReadings[2] <<
+  //             " groundColour: " << groundColor << std::endl;
+}
+
+/****************************************/
+/****************************************/
+
 
 /*
  * This statement notifies ARGoS of the existence of the controller.
