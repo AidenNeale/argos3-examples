@@ -112,6 +112,10 @@ private:
   bool onWater;
 
   CColor groundColor;
+
+  /* Wheel speed. */
+  Real m_fWheelVelocity;
+
 };
 
 #endif

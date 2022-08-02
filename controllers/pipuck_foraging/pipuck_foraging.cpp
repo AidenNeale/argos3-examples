@@ -48,7 +48,7 @@ void CPiPuckForaging::Init(TConfigurationNode& t_node) {
 /****************************************/
 
 void CPiPuckForaging::ControlStep() {
-  getGroundColorSensor();
+  readGroundColorSensor();
   pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
   std::vector<Real> vecReadings;
   Real Readings[8];
