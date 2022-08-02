@@ -1,6 +1,7 @@
 #include "pipuck_foraging_loop_functions.h"
 #include <argos3/plugins/robots/pi-puck/simulator/pipuck_entity.h>
 #include <argos3/core/simulator/entity/embodied_entity.h>
+#include <controllers/pipuck_foraging/pipuck_foraging.h>
 
 namespace argos {
 
@@ -164,7 +165,14 @@ CColor CPiPuckForagingLoopFunctions::GetFloorColor(const CVector2& c_position_on
   /****************************************/
 
 void CPiPuckForagingLoopFunctions::PreStep() {
+  CSpace::TMapPerType& m_cPipucks = GetSpace().GetEntitiesByType("pipuck");
+  for(CSpace::TMapPerType::iterator it = m_cPipucks.begin(); it != m_cPipucks.end(); ++it) {
+      /* Get handle to foot-bot entity and controller */
+      CPiPuckEntity& cPipuck = *any_cast<CPiPuckEntity*>(it->second);
+      CPiPuckForaging& cController = dynamic_cast<CPiPuckForaging&>(cPipuck.GetControllableEntity().GetController());
 
+
+  }
 }
 
   /****************************************/
