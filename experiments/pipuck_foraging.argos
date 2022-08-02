@@ -25,7 +25,7 @@
         <pipuck_ground_colour implementation="default" show_rays="true"/>
         <pipuck_rangefinders implementation="default" show_rays="true"/>
       </sensors>
-      <params velocity="5" />
+      <params/>
     </pipuck_foraging_controller>
 
   </controllers>
@@ -36,10 +36,7 @@
                   label="pipuck_foraging_loop_functions">
     <foraging foodZones="2"
               waterZones="2"
-              zoneRadius="0.3"
-              energy_per_item="1000"
-              energy_per_walking_robot="1"
-              output="pipuck_foraging.txt" />
+              zoneRadius="0.3" />
   </loop_functions>
 
   <!-- *********************** -->
