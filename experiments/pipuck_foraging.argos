@@ -36,6 +36,7 @@
                   label="pipuck_foraging_loop_functions">
     <foraging foodZones="2"
               waterZones="2"
+              zoneLifetime="10"
               zoneRadius="0.3" />
   </loop_functions>
 
