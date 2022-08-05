@@ -36,8 +36,14 @@
                   label="pipuck_foraging_loop_functions">
     <foraging foodZones="2"
               waterZones="2"
-              zoneLifetime="10"
+              finiteZones="true"
+              zoneLifetime="30"
               zoneRadius="0.3" />
+    <!-- Enabled has values "true" || "false" -->
+    <stigmergy enabled="true"
+               pheromoneRadius="0.035"
+               pheromoneLifetime="100"
+                />
   </loop_functions>
 
   <!-- *********************** -->
@@ -73,7 +79,7 @@
     <distribute>
       <position method="uniform" min="-2,-2,0" max="-1.5,2,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="50" max_trials="100">
+      <entity quantity="20" max_trials="100">
         <pipuck id="fb">
           <controller config="fdc" />
         </pipuck>
