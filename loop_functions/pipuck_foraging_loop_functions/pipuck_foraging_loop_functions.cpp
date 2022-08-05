@@ -265,51 +265,50 @@ void CPiPuckForagingLoopFunctions::PreStep() {
   CSpace::TMapPerType& m_cPipucks = GetSpace().GetEntitiesByType("pipuck");
   UInt32 SimulationTime = GetSpace().GetSimulationClock();
   for(CSpace::TMapPerType::iterator it = m_cPipucks.begin(); it != m_cPipucks.end(); ++it) {
-      /* Get handle to pipuck entity and controller */
-      CPiPuckEntity& cPipuck = *any_cast<CPiPuckEntity*>(it->second);
-      CPiPuckForaging& cController = dynamic_cast<CPiPuckForaging&>(cPipuck.GetControllableEntity().GetController());
-      CColor floorColor = cController.getGroundColor();
+    /* Get handle to pipuck entity and controller */
+    CPiPuckEntity& cPipuck = *any_cast<CPiPuckEntity*>(it->second);
+    CPiPuckForaging& cController = dynamic_cast<CPiPuckForaging&>(cPipuck.GetControllableEntity().GetController());
+    CColor floorColor = cController.getGroundColor();
 
-      /* Get the position of the pipuck on the ground as a CVector2 */
-      CVector2 cPos;
-      cPos.Set(cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position.GetX(),
-               cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position.GetY());
+    /* Get the position of the pipuck on the ground as a CVector2 */
+    CVector2 cPos;
+    cPos.Set(cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position.GetX(),
+              cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position.GetY());
 
-      if ((floorColor == green || floorColor == magenta)
-            && pheromoneTrialEnabled && cController.getPheromonesOn()) {
-        // Robot is in the wild, pheromone trials can be drawn
-        DrawPheromoneTrials(cPos);
-      }
-      else if (floorColor == orange) {
-        cController.setPheromonesOn(false); //Move to controller code eventually
-      }
-      else if (floorColor == blue) {
-        // Robot is in a water zone
-        for (int waterIndex = 0; waterIndex < m_waterZones.size(); waterIndex++) {
-          // Loop through each zone to determine which zone the robot is within
-          if ((cPos - m_waterZones[waterIndex].zoneLocation).Length() < zoneRadius) {
-            cController.setPheromonesOn(true); //Move to controller code eventually
-            if (finiteZones) {
-              DeductZoneLifetime(floorColor, waterIndex);
-            }
-            // std::cout << "Robot is detected inside water zone " << m_waterZones[waterIndex].zoneId << std::endl;
+    if ((floorColor == green || floorColor == magenta)
+          && pheromoneTrialEnabled && cController.getPheromonesOn()) {
+      // Robot is in the wild, pheromone trials can be drawn
+      DrawPheromoneTrials(cPos);
+    }
+    else if (floorColor == orange) {
+      cController.setPheromonesOn(false); //Move to controller code eventually
+    }
+    else if (floorColor == blue) {
+      // Robot is in a water zone
+      for (int waterIndex = 0; waterIndex < m_waterZones.size(); waterIndex++) {
+        // Loop through each zone to determine which zone the robot is within
+        if ((cPos - m_waterZones[waterIndex].zoneLocation).Length() < zoneRadius) {
+          cController.setPheromonesOn(true); //Move to controller code eventually
+          if (finiteZones) {
+            DeductZoneLifetime(floorColor, waterIndex);
           }
+          // std::cout << "Robot is detected inside water zone " << m_waterZones[waterIndex].zoneId << std::endl;
         }
       }
-      else if (floorColor == red) {
-        // Robot is in a food zone
-        for (int foodIndex = 0; foodIndex < m_foodZones.size(); foodIndex++) {
-          // Loop through each zone to determine which zone the robot is within
-          if ((cPos - m_foodZones[foodIndex].zoneLocation).Length() < zoneRadius) {
-            cController.setPheromonesOn(true); //Move to controller code eventually
-            if (finiteZones) {
-              DeductZoneLifetime(floorColor, foodIndex);
-            }
-            // std::cout << "Robot is detected inside food zone " << m_foodZones[foodIndex].zoneId << std::endl;
+    }
+    else if (floorColor == red) {
+      // Robot is in a food zone
+      for (int foodIndex = 0; foodIndex < m_foodZones.size(); foodIndex++) {
+        // Loop through each zone to determine which zone the robot is within
+        if ((cPos - m_foodZones[foodIndex].zoneLocation).Length() < zoneRadius) {
+          cController.setPheromonesOn(true); //Move to controller code eventually
+          if (finiteZones) {
+            DeductZoneLifetime(floorColor, foodIndex);
           }
+          // std::cout << "Robot is detected inside food zone " << m_foodZones[foodIndex].zoneId << std::endl;
         }
-
       }
+    }
   }
 
   if (pheromoneTrialEnabled) {
