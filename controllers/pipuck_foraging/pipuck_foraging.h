@@ -91,6 +91,13 @@ public:
     onWater = water;
   }
 
+  bool getPheromonesOn() {
+    return pheromonesOn;
+  }
+  void setPheromonesOn(bool pheromones) {
+    pheromonesOn = pheromones;
+  }
+
   CColor getGroundColor() {
     return groundColor;
   }
@@ -110,6 +117,7 @@ private:
 
   bool onFood;
   bool onWater;
+  bool pheromonesOn;
 
   CColor groundColor;
 
