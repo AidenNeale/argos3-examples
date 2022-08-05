@@ -9,6 +9,7 @@ namespace argos {
 #include <argos3/core/simulator/entity/floor_entity.h>
 #include <argos3/core/utility/math/range.h>
 #include <argos3/core/utility/math/rng.h>
+#include <chrono>
 
 
 namespace argos {
@@ -16,18 +17,6 @@ namespace argos {
   class CPiPuckForagingLoopFunctions : public CLoopFunctions {
 
   public:
-
-    CPiPuckForagingLoopFunctions();
-
-    virtual ~CPiPuckForagingLoopFunctions() {}
-
-    virtual void Init(TConfigurationNode& t_tree);
-    virtual void Reset();
-    virtual void Destroy();
-    virtual void DistributeWaterSource(int, int);
-    virtual void DistributeFoodSource(int, int);
-    virtual CColor GetFloorColor(const CVector2& c_position_on_plane);
-    virtual void PreStep();
 
     struct SZoneData {
       int zoneId;
@@ -44,16 +33,54 @@ namespace argos {
       void Reset();
     };
 
+    struct SVirtualPheromone {
+      int id;
+      int lifetime;
+      CVector2 position;
+
+      SVirtualPheromone() {
+        id = -1;
+        lifetime = -1;
+        position = CVector2(1000, 1000);
+      }
+      void Reset();
+    };
+
+    CPiPuckForagingLoopFunctions();
+
+    virtual ~CPiPuckForagingLoopFunctions() {}
+
+    virtual void Init(TConfigurationNode& t_tree);
+    virtual void Reset();
+    virtual void Destroy();
+    void DistributeWaterSource(int, int);
+    void DistributeFoodSource(int, int);
+    void DeductZoneLifetime(CColor, int);
+    void DrawPheromoneTrials(CVector2);
+    void DeductPheromoneLifetime();
+    void EraseExpiredPheromones();
+    virtual CColor GetFloorColor(const CVector2& c_position_on_plane);
+    virtual void PreStep();
+
+
   private:
     CRange<Real> m_cForagingArenaSideX, m_cForagingArenaSideY;
     CFloorEntity* m_pcFloor;
     CRandom::CRNG* m_pcRNG;
 
+    // std::list<SVirtualPheromone> m_pheromones;
+    std::vector<SVirtualPheromone> m_pheromones;
+
     std::vector<SZoneData> m_foodZones;
     std::vector<SZoneData> m_waterZones;
     UInt32 numFoodZones, numWaterZones;
     float zoneRadius, zoneLifetime;
+    float pheromoneTrialRadius, pheromoneTrialLifetime;
+    bool finiteZones, pheromoneTrialEnabled;
     bool foodLocationDefined, waterLocationDefined;
+
+    CColor red, green, blue, orange, magenta;
+
   };
 }
 
