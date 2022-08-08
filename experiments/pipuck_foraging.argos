@@ -37,12 +37,15 @@
     <foraging foodZones="2"
               waterZones="2"
               finiteZones="true"
-              zoneLifetime="30"
+              zoneLifetime="100"
               zoneRadius="0.3" />
-    <!-- Enabled has values "true" || "false" -->
+    <!-- Stigmergy type breakout
+        Enabled           -> bool
+        pheromoneRadius   -> float
+        rateOfEvaporation -> float -->
     <stigmergy enabled="true"
                pheromoneRadius="0.035"
-               pheromoneLifetime="100"
+               rateOfEvaporation="0.15"
                 />
   </loop_functions>
 
@@ -67,6 +70,31 @@
       <body position="-2,0,0" orientation="0,0,0" />
     </box>
 
+    <light id="light_1"
+           position="-2,-1.5,1.0"
+           orientation="0,0,0"
+           color="yellow"
+           intensity="3.0"
+           medium="leds" />
+    <light id="light_2"
+           position="-2,-0.5,1.0"
+           orientation="0,0,0"
+           color="yellow"
+           intensity="3.0"
+           medium="leds" />
+    <light id="light_3"
+           position="-2,0.5,1.0"
+           orientation="0,0,0"
+           color="yellow"
+           intensity="3.0"
+           medium="leds" />
+    <light id="light_4"
+           position="-2,1.5,1.0"
+           orientation="0,0,0"
+           color="yellow"
+           intensity="3.0"
+           medium="leds" />
+
     <!--
         You can distribute entities randomly. Here, we distribute
         10 pi-pucks in this way:
@@ -79,7 +107,7 @@
     <distribute>
       <position method="uniform" min="-2,-2,0" max="-1.5,2,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="20" max_trials="100">
+      <entity quantity="10" max_trials="100">
         <pipuck id="fb">
           <controller config="fdc" />
         </pipuck>
@@ -122,7 +150,9 @@
   <!-- ********* -->
   <!-- * Media * -->
   <!-- ********* -->
-  <media />
+  <media>
+    <led id="leds" />
+  </media>
 
   <!-- ****************** -->
   <!-- * Visualization * -->
