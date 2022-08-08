@@ -38,6 +38,79 @@ class CPiPuckForaging : public CCI_Controller {
 
 public:
 
+  struct SZoneData {
+    bool hasZone;
+    int ZoneType; // 0 Food, 1 Water
+    int ZoneID;
+    int ZoneLifetime;
+
+    SZoneData();
+    void Reset();
+  };
+
+
+
+  /*
+  * Contains all the state information about the controller.
+  */
+  struct SStateData {
+    /* The three possible states in which the controller can be */
+    enum EState {
+        STATE_RETURN_TO_NEST = 0,
+        STATE_FOLLOW_PHEROMONE = 1,
+        STATE_RANDOM_WALK = 2
+    } State;
+
+    /* True when the robot is in the nest */
+    bool InNest;
+
+    // /* Initial probability to switch from resting to exploring */
+    // Real InitialRestToExploreProb;
+    // /* Current probability to switch from resting to exploring */
+    // Real RestToExploreProb;
+    // /* Initial probability to switch from exploring to resting */
+    // Real InitialExploreToRestProb;
+    // /* Current probability to switch from exploring to resting */
+    // Real ExploreToRestProb;
+    /* Used as a range for uniform number generation */
+    CRange<Real> ProbRange;
+    // /* The increase of ExploreToRestProb due to the food rule */
+    // Real FoodRuleExploreToRestDeltaProb;
+    // /* The increase of RestToExploreProb due to the food rule */
+    // Real FoodRuleRestToExploreDeltaProb;
+    // /* The increase of ExploreToRestProb due to the collision rule */
+    // Real CollisionRuleExploreToRestDeltaProb;
+    // /* The increase of RestToExploreProb due to the social rule */
+    // Real SocialRuleRestToExploreDeltaProb;
+    // /* The increase of ExploreToRestProb due to the social rule */
+    // Real SocialRuleExploreToRestDeltaProb;
+    // /* The minimum number of steps in resting state before the robots
+    //     starts thinking that it's time to move */
+    // size_t MinimumRestingTime;
+    // /* The number of steps in resting state */
+    // size_t TimeRested;
+    // /* The number of exploration steps without finding food after which
+    //     a foot-bot starts thinking about going back to the nest */
+    // size_t MinimumUnsuccessfulExploreTime;
+    // /* The number of exploration steps without finding food */
+    // size_t TimeExploringUnsuccessfully;
+    // /* If the robots switched to resting as soon as it enters the nest,
+    //     there would be overcrowding of robots in the border between the
+    //     nest and the rest of the arena. To overcome this issue, the robot
+    //     spends some time looking for a place in the nest before finally
+    //     settling. The following variable contains the minimum time the
+    //     robot must spend in state 'return to nest' looking for a place in
+    //     the nest before switching to the resting state. */
+    // size_t MinimumSearchForPlaceInNestTime;
+    // /* The time spent searching for a place in the nest */
+    // size_t TimeSearchingForPlaceInNest;
+
+    SStateData();
+    // void Init(TConfigurationNode& t_node);
+    void Reset();
+  };
+
+
   /* Class constructor. */
   CPiPuckForaging();
 
@@ -75,35 +148,27 @@ public:
   */
   virtual void Destroy() {}
 
+  void RandomWalk();
+
+  void ReturnToNest();
+
+  void FollowPheromoneTrial();
+
   void readGroundColorSensor();
 
-  bool getOnFood() {
-    return onFood;
-  }
-  void setOnFood(bool food) {
-    onFood = food;
-  }
-
-  bool getOnWater() {
-    return onWater;
-  }
-  void setOnWater(bool water) {
-    onWater = water;
-  }
-
-  bool getPheromonesOn() {
-    return pheromonesOn;
-  }
-  void setPheromonesOn(bool pheromones) {
-    pheromonesOn = pheromones;
-  }
-
-  CColor getGroundColor() {
+  inline CColor getGroundColor() {
     return groundColor;
   }
 
-  void setGroundColor(CColor color) {
+  inline void setGroundColor(CColor color) {
     groundColor = color;
+  }
+
+  /*
+  * Returns the food data
+  */
+  inline SZoneData& GetZoneData() {
+    return m_sZoneData;
   }
 
 private:
@@ -115,14 +180,17 @@ private:
   /* Pointer to the pi-puck ground colour sensor */
   CCI_PiPuckGroundColourSensor* pcGround;
 
-  bool onFood;
-  bool onWater;
   bool pheromonesOn;
 
   CColor groundColor;
 
   /* Wheel speed. */
   Real m_fWheelVelocity;
+
+  SZoneData m_sZoneData;
+
+  /* The controller state information */
+  SStateData m_sStateData;
 
 };
 
