@@ -3,6 +3,26 @@
 /* Function definitions for XML parsing */
 #include <argos3/core/utility/configuration/argos_configuration.h>
 
+CPiPuckForaging::SZoneData::SZoneData() :
+  hasZone(false),
+  ZoneID(-1),
+  ZoneLifetime(-1),
+  ZoneType(-1) {}
+
+void CPiPuckForaging::SZoneData::Reset() {
+  hasZone = false;
+  ZoneID = -1;
+  ZoneLifetime = -1;
+  ZoneType = -1;
+}
+
+CPiPuckForaging::SStateData::SStateData() :
+  ProbRange(0.0f, 1.0f) {}
+
+void CPiPuckForaging::SStateData::Reset() {
+  State = STATE_RANDOM_WALK;
+  InNest = true;
+}
 /****************************************/
 /****************************************/
 
@@ -42,14 +62,62 @@ void CPiPuckForaging::Init(TConfigurationNode& t_node) {
     pcGround = GetSensor<CCI_PiPuckGroundColourSensor>("pipuck_ground_colour");
     pcProximity = GetSensor<CCI_PiPuckRangefindersSensor>("pipuck_rangefinders");
 
+    m_sStateData.Reset();
 }
 
 /****************************************/
 /****************************************/
 
 void CPiPuckForaging::ControlStep() {
+  switch (m_sStateData.State)
+  {
+  case SStateData::STATE_RETURN_TO_NEST:
+    ReturnToNest();
+    break;
+
+  case SStateData::STATE_FOLLOW_PHEROMONE:
+    FollowPheromoneTrial();
+    break;
+
+  case SStateData::STATE_RANDOM_WALK:
+    RandomWalk();
+    break;
+  default:
+    break;
+  }
+}
+
+/****************************************/
+/****************************************/
+
+void CPiPuckForaging::ReturnToNest() {
+
+}
+
+/****************************************/
+/****************************************/
+
+void CPiPuckForaging::FollowPheromoneTrial() {
+
+}
+
+/****************************************/
+/****************************************/
+
+void CPiPuckForaging::RandomWalk() {
   readGroundColorSensor();
-  pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
+  if (groundColor == CColor::BLUE) {
+    m_sZoneData.hasZone = true;
+    m_sZoneData.ZoneType = 1;
+  }
+  else if (groundColor == CColor::RED) {
+    m_sZoneData.hasZone = true;
+    m_sZoneData.ZoneType = 0;
+  }
+  else if (groundColor == CColor::ORANGE) {
+    m_sZoneData.Reset();
+  }
+
   std::vector<Real> vecReadings;
   Real Readings[8];
   pcProximity->Visit([&vecReadings, &Readings] (const CCI_PiPuckRangefindersSensor::SInterface& s_interface)
@@ -137,6 +205,7 @@ void CPiPuckForaging::ControlStep() {
 
   pcWheels->SetLinearVelocity(left, right);
 }
+
 
 /****************************************/
 /****************************************/
