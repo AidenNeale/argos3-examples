@@ -10,6 +10,7 @@ namespace argos {
 #include <argos3/core/utility/math/range.h>
 #include <argos3/core/utility/math/rng.h>
 #include <chrono>
+#include <controllers/pipuck_foraging/pipuck_foraging.h>
 
 
 namespace argos {
@@ -36,11 +37,13 @@ namespace argos {
     struct SVirtualPheromone {
       int id;
       int lifetime;
+      int type;
       CVector2 position;
 
       SVirtualPheromone() {
         id = -1;
         lifetime = -1;
+        type = -1;
         position = CVector2(1000, 1000);
       }
       void Reset();
@@ -56,7 +59,7 @@ namespace argos {
     void DistributeWaterSource(int, int);
     void DistributeFoodSource(int, int);
     void DeductZoneLifetime(CColor, int);
-    void DrawPheromoneTrials(CVector2);
+    void DrawPheromoneTrials(CVector2, CPiPuckForaging::SZoneData&);
     void DeductPheromoneLifetime();
     void EraseExpiredPheromones();
     virtual CColor GetFloorColor(const CVector2& c_position_on_plane);
@@ -75,11 +78,11 @@ namespace argos {
     std::vector<SZoneData> m_waterZones;
     UInt32 numFoodZones, numWaterZones;
     float zoneRadius, zoneLifetime;
-    float pheromoneTrialRadius, pheromoneTrialLifetime;
+    float pheromoneTrialRadius, rateOfEvaporation;
     bool finiteZones, pheromoneTrialEnabled;
     bool foodLocationDefined, waterLocationDefined;
 
-    CColor red, green, blue, orange, magenta;
+    CColor defaultColor;
 
   };
 }

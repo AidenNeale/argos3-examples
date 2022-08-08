@@ -1,18 +1,30 @@
 #include "pipuck_foraging_loop_functions.h"
 #include <argos3/plugins/robots/pi-puck/simulator/pipuck_entity.h>
 #include <argos3/core/simulator/entity/embodied_entity.h>
-#include <controllers/pipuck_foraging/pipuck_foraging.h>
 
 namespace argos {
 
   /****************************************/
+  /****************************************
+
+    TODO:
+    [X] Different colour pheromones for food/water
+    [X] Different lifetime pheromones depending on current food/water zone lifetime
+    [X] Different Alpha levels - strongest at zone, weaker as moves away
+    [X] Robots control turning pheromones on/off
+    Use of Light Sensor to return pipucks to nest
+    Optimisation of drawing getFloorColor()
+      Turn loop through floor into array of [widthxheight] and map each index to a CColor
+
+   ****************************************/
   /****************************************/
 
 CPiPuckForagingLoopFunctions::CPiPuckForagingLoopFunctions() :
-  m_cForagingArenaSideX(-0.9f, 1.7f),
+  m_cForagingArenaSideX(-0.8f, 1.7f),
   m_cForagingArenaSideY(-1.7f, 1.7f),
   m_pcFloor(NULL),
-  m_pcRNG(NULL)
+  m_pcRNG(NULL),
+  defaultColor(CColor())
   {}
 
   /****************************************/
@@ -34,7 +46,7 @@ void CPiPuckForagingLoopFunctions::Init(TConfigurationNode& t_node) {
 
   GetNodeAttribute(tStigmergy, "enabled", pheromoneTrialEnabled);
   GetNodeAttribute(tStigmergy, "pheromoneRadius", pheromoneTrialRadius);
-  GetNodeAttribute(tStigmergy, "pheromoneLifetime", pheromoneTrialLifetime);
+  GetNodeAttribute(tStigmergy, "rateOfEvaporation", rateOfEvaporation);
 
   /* Setup default starting values for food and water position */
   for (int i = 0; i < numFoodZones; i++) {
@@ -51,17 +63,21 @@ void CPiPuckForagingLoopFunctions::Init(TConfigurationNode& t_node) {
   foodLocationDefined = false;
   waterLocationDefined = false;
 
-  /* Sets up sample colour to compare floorColor against */
-  red.Set("red");
-  green.Set("green");
-  blue.Set("blue");
-  orange.Set("orange");
-  magenta.Set("magenta");
 }
 
   /****************************************/
   /****************************************/
 
+/*
+Allocates new non-overlapping locations for a water zone
+
+Parameters:
+-----------
+int startIndex:
+  The beginning index of the m_waterZones that requires changing
+int endIndex:
+  The final index of the m_waterZones that requires changing
+*/
 void CPiPuckForagingLoopFunctions::DistributeWaterSource(int startIndex, int endIndex) {
   bool locationOverlap, foodOverlapDetected, waterOverlapDetected;
   CVector2 newPos;
@@ -102,6 +118,16 @@ void CPiPuckForagingLoopFunctions::DistributeWaterSource(int startIndex, int end
   /****************************************/
   /****************************************/
 
+/*
+Allocates new non-overlapping locations for a food zone
+
+Parameters:
+-----------
+int startIndex:
+  The beginning index of the m_foodZones that requires changing
+int endIndex:
+  The final index of the m_foodZones that requires changing
+*/
 void CPiPuckForagingLoopFunctions::DistributeFoodSource(int startIndex, int endIndex) {
   bool foodOverlapDetected, waterOverlapDetected, locationOverlap;
   CVector2 newPos;
@@ -144,13 +170,13 @@ void CPiPuckForagingLoopFunctions::DistributeFoodSource(int startIndex, int endI
   /****************************************/
 
   void CPiPuckForagingLoopFunctions::DeductZoneLifetime(CColor floorColor, int index) {
-    if (floorColor == blue) {
+    if (floorColor == CColor::BLUE) {
       m_waterZones[index].lifetime -= 1;
       if (m_waterZones[index].lifetime < 1) {
         DistributeWaterSource(index, index + 1);
       }
     }
-    else if (floorColor == red) {
+    else if (floorColor == CColor::RED) {
       m_foodZones[index].lifetime -= 1;
       if (m_foodZones[index].lifetime < 1) {
         DistributeFoodSource(index, index + 1);
@@ -188,6 +214,8 @@ void CPiPuckForagingLoopFunctions::Destroy() {
 
 CColor CPiPuckForagingLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane) {
   /* Returns Orange if the floor position is within the "nest" */
+
+  // std::cout << c_position_on_plane <<std::endl;
   if(c_position_on_plane.GetX() < -1.5f) {
     return CColor::ORANGE;
   }
@@ -207,7 +235,17 @@ CColor CPiPuckForagingLoopFunctions::GetFloorColor(const CVector2& c_position_on
   for (UInt32 k = 0; k < m_pheromones.size(); k++){
     if ((c_position_on_plane - m_pheromones[k].position).Length() < pheromoneTrialRadius) {
       if (m_pheromones[k].lifetime > 0) {
-        return CColor::MAGENTA;
+        if (m_pheromones[k].type == 0) {
+          defaultColor.SetRed(255);
+          defaultColor.SetGreen(0 + m_pheromones[k].lifetime);
+          defaultColor.SetBlue(255);
+        }
+        else {
+          defaultColor.SetRed(0 + m_pheromones[k].lifetime);
+          defaultColor.SetGreen(200);
+          defaultColor.SetBlue(255);
+        }
+        return defaultColor;
       }
     }
   }
@@ -218,12 +256,19 @@ CColor CPiPuckForagingLoopFunctions::GetFloorColor(const CVector2& c_position_on
   /****************************************/
   /****************************************/
 
-void CPiPuckForagingLoopFunctions::DrawPheromoneTrials(CVector2 cPos) {
+void CPiPuckForagingLoopFunctions::DrawPheromoneTrials(CVector2 cPos, CPiPuckForaging::SZoneData& sZoneData) {
   UInt32 newID = m_pheromones.size();
   m_pheromones.push_back(SVirtualPheromone());
   m_pheromones[newID].id = newID;
-  m_pheromones[newID].lifetime = pheromoneTrialLifetime;
+  m_pheromones[newID].lifetime = int((sZoneData.ZoneLifetime/zoneLifetime) * 255);
   m_pheromones[newID].position.Set(cPos.GetX(), cPos.GetY());
+
+  if (sZoneData.ZoneType == 0) {
+    m_pheromones[newID].type = 0;
+  }
+  else if (sZoneData.ZoneType == 1) {
+    m_pheromones[newID].type = 1;
+  }
 }
 
   /****************************************/
@@ -231,7 +276,7 @@ void CPiPuckForagingLoopFunctions::DrawPheromoneTrials(CVector2 cPos) {
 
 void CPiPuckForagingLoopFunctions::DeductPheromoneLifetime() {
   for (UInt32 index = 0; index < m_pheromones.size(); index++) {
-    m_pheromones[index].lifetime -= 1;
+    m_pheromones[index].lifetime -= UInt8(rateOfEvaporation * 100);
   }
 }
 
@@ -269,43 +314,46 @@ void CPiPuckForagingLoopFunctions::PreStep() {
     CPiPuckEntity& cPipuck = *any_cast<CPiPuckEntity*>(it->second);
     CPiPuckForaging& cController = dynamic_cast<CPiPuckForaging&>(cPipuck.GetControllableEntity().GetController());
     CColor floorColor = cController.getGroundColor();
+    CPiPuckForaging::SZoneData& SZoneData = cController.GetZoneData();
+
+
 
     /* Get the position of the pipuck on the ground as a CVector2 */
     CVector2 cPos;
     cPos.Set(cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position.GetX(),
               cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position.GetY());
 
-    if ((floorColor == green || floorColor == magenta)
-          && pheromoneTrialEnabled && cController.getPheromonesOn()) {
+    if ((floorColor == CColor::GREEN ||
+          (floorColor.GetRed() == 255 && floorColor.GetGreen() >= 0 && floorColor.GetBlue() == 255) ||
+          (floorColor.GetRed() >= 0 && floorColor.GetGreen() == 200 && floorColor.GetBlue() == 255))
+          && pheromoneTrialEnabled && SZoneData.hasZone) {
       // Robot is in the wild, pheromone trials can be drawn
-      DrawPheromoneTrials(cPos);
+      DrawPheromoneTrials(cPos, SZoneData);
     }
-    else if (floorColor == orange) {
-      cController.setPheromonesOn(false); //Move to controller code eventually
+    else if (floorColor == CColor::ORANGE) {
+      // Robot in Nest
     }
-    else if (floorColor == blue) {
+    else if (floorColor == CColor::BLUE) {
       // Robot is in a water zone
       for (int waterIndex = 0; waterIndex < m_waterZones.size(); waterIndex++) {
         // Loop through each zone to determine which zone the robot is within
         if ((cPos - m_waterZones[waterIndex].zoneLocation).Length() < zoneRadius) {
-          cController.setPheromonesOn(true); //Move to controller code eventually
           if (finiteZones) {
+            SZoneData.ZoneLifetime = m_waterZones[waterIndex].lifetime;
             DeductZoneLifetime(floorColor, waterIndex);
           }
-          // std::cout << "Robot is detected inside water zone " << m_waterZones[waterIndex].zoneId << std::endl;
         }
       }
     }
-    else if (floorColor == red) {
+    else if (floorColor == CColor::RED) {
       // Robot is in a food zone
       for (int foodIndex = 0; foodIndex < m_foodZones.size(); foodIndex++) {
         // Loop through each zone to determine which zone the robot is within
         if ((cPos - m_foodZones[foodIndex].zoneLocation).Length() < zoneRadius) {
-          cController.setPheromonesOn(true); //Move to controller code eventually
           if (finiteZones) {
+            SZoneData.ZoneLifetime = m_foodZones[foodIndex].lifetime;
             DeductZoneLifetime(floorColor, foodIndex);
           }
-          // std::cout << "Robot is detected inside food zone " << m_foodZones[foodIndex].zoneId << std::endl;
         }
       }
     }
