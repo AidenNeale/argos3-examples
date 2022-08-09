@@ -301,6 +301,7 @@ void CPiPuckForagingLoopFunctions::ResetFloor() {
 void CPiPuckForagingLoopFunctions::UpdateFloor() {
   ResetFloor();
   CVector2 cPos;
+  /* Loops through the pixelArray and sets the index orange if it's a position for the nest */
   for (int i = 0; i < (arenaFloorX*arenaFloorY); i++) {
     cPos = CVector2((i % arenaFloorX), (i/arenaFloorX));
     cPos /= pixelsPerMeter;
@@ -323,7 +324,7 @@ void CPiPuckForagingLoopFunctions::UpdateFloor() {
       }
     }
   }
-  /* Sets Blue if the floor position is a food zone*/
+  /* Sets Blue if the floor position is a water zone*/
   for(UInt32 waterIndex = 0; waterIndex < m_waterZones.size(); waterIndex++) {
     for (int i = 0; i < (arenaFloorX*arenaFloorY); i++) {
       if (arenaPixelArray[i] == CColor::BLACK) {
@@ -336,7 +337,7 @@ void CPiPuckForagingLoopFunctions::UpdateFloor() {
       }
     }
   }
-  /* This chunk of code completely lags the simulator NEEDS OPTIMISING*/
+  /* This stores the pheromones trials behind the robot in the pixel array */
   for(UInt32 pIndex = 0; pIndex < m_pheromones.size(); pIndex++) {
     // Moves to bottom corner of the circle "square" border
     CVector2 c_position_on_plane = m_pheromones[pIndex].position - CVector2(pheromoneTrialRadius, pheromoneTrialRadius);
@@ -345,10 +346,11 @@ void CPiPuckForagingLoopFunctions::UpdateFloor() {
       for (int x = 0; x < arenaFloorX; x++){
         cPos = c_position_on_plane + CVector2(x/float(pixelsPerMeter), y/float(pixelsPerMeter));
         if((cPos - m_pheromones[pIndex].position).Length() < pheromoneTrialRadius) {
-          // Position within Radius. Need to calculate index
+          // Shifts the coordinates into the index of the pixelArray
           cPos += CVector2(arenaSize.GetX()/2, arenaSize.GetY()/2);
           cPos *= pixelsPerMeter;
           int index = int(cPos.GetX() + (cPos.GetY()) * arenaFloorX);
+          // Determines if the Array already has a CColor within with a higher priority
           if (arenaPixelArray[index] == CColor::BLACK
                       || (arenaPixelArray[index].GetRed() == 255 && arenaPixelArray[index].GetGreen() >= 0 && arenaPixelArray[index].GetBlue() == 255)
                       || (arenaPixelArray[index].GetRed() >= 0 && arenaPixelArray[index].GetGreen() == 200 && arenaPixelArray[index].GetBlue() == 255)) {
@@ -365,10 +367,12 @@ void CPiPuckForagingLoopFunctions::UpdateFloor() {
             arenaPixelArray[index] = defaultColor;
           }
         }
+        // If the increment is greater than the diameter then it'll never be inside the circle
         else if ((x/pixelsPerMeter) > (2 * pheromoneTrialRadius)){
           break;
         }
       }
+      // If the increment is greater than the diameter then it'll never be inside the circle
       if ((y/pixelsPerMeter) > (2* pheromoneTrialRadius)) {
         break;
       }
