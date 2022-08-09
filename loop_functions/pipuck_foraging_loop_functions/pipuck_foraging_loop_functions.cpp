@@ -33,10 +33,17 @@ CPiPuckForagingLoopFunctions::CPiPuckForagingLoopFunctions() :
 void CPiPuckForagingLoopFunctions::Init(TConfigurationNode& t_node) {
   TConfigurationNode& tForaging = GetNode(t_node, "foraging");
   TConfigurationNode& tStigmergy = GetNode(t_node, "stigmergy");
-  /* Get a pointer to the floor entity */
-  m_pcFloor = &GetSpace().GetFloorEntity();
   /* Create a new RNG */
   m_pcRNG = CRandom::CreateRNG("argos");
+  /* Get a pointer to the floor entity */
+  m_pcFloor = &GetSpace().GetFloorEntity();
+  arenaSize = *(&GetSpace().GetArenaSize());
+
+
+  GetNodeAttribute(*(m_pcFloor->GetConfigurationNode()), "pixels_per_meter", pixelsPerMeter);
+  arenaFloorX = pixelsPerMeter * arenaSize.GetX();
+  arenaFloorY = pixelsPerMeter * arenaSize.GetY();
+  arenaPixelArray = new CColor [arenaFloorX * arenaFloorY];
 
   GetNodeAttribute(tForaging, "foodZones", numFoodZones);
   GetNodeAttribute(tForaging, "waterZones", numWaterZones);
@@ -63,6 +70,7 @@ void CPiPuckForagingLoopFunctions::Init(TConfigurationNode& t_node) {
   foodLocationDefined = false;
   waterLocationDefined = false;
 
+  UpdateFloor();
 }
 
   /****************************************/
@@ -200,6 +208,8 @@ void CPiPuckForagingLoopFunctions::Reset() {
   m_pheromones.clear();
   DistributeFoodSource(0, numFoodZones);
   DistributeWaterSource(0, numWaterZones);
+  ResetFloor();
+  UpdateFloor();
 }
 
   /****************************************/
@@ -212,45 +222,21 @@ void CPiPuckForagingLoopFunctions::Destroy() {
   /****************************************/
   /****************************************/
 
+CVector2 CPiPuckForagingLoopFunctions::clampToPixelValue(CVector2 c_position_on_plane) {
+  // std::cout << (c_position_on_plane) << std::endl;
+
+  c_position_on_plane.Set(round(c_position_on_plane.GetX()*pixelsPerMeter), round(c_position_on_plane.GetY()*pixelsPerMeter));
+  return ((c_position_on_plane) / float(pixelsPerMeter));
+}
+
 CColor CPiPuckForagingLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane) {
   /* Returns Orange if the floor position is within the "nest" */
+  CVector2 indexing = clampToPixelValue(c_position_on_plane);
+  // std::cout << "This is after clamping: " << indexing << std::endl;
+  indexing += CVector2(arenaSize.GetX()/2, arenaSize.GetY()/2);
+  indexing *= pixelsPerMeter;
+  return arenaPixelArray[int(indexing.GetX() + (indexing.GetY()) * arenaFloorX)];
 
-  // std::cout << c_position_on_plane <<std::endl;
-  if(c_position_on_plane.GetX() < -1.5f) {
-    return CColor::ORANGE;
-  }
-  /* Returns Red if the floor position is a food zone*/
-  for(UInt32 i = 0; i < m_foodZones.size(); i++) {
-    if((c_position_on_plane - m_foodZones[i].zoneLocation).Length() < zoneRadius) {
-      return CColor::RED;
-    }
-  }
-  /* Returns Blue if the floor position is a water zone */
-  for(UInt32 j = 0; j < m_waterZones.size(); j++) {
-    if((c_position_on_plane - m_waterZones[j].zoneLocation).Length() < zoneRadius) {
-      return CColor::BLUE;
-    }
-  }
-  /* Returns Magenta if the floor position is a pheromone */
-  for (UInt32 k = 0; k < m_pheromones.size(); k++){
-    if ((c_position_on_plane - m_pheromones[k].position).Length() < pheromoneTrialRadius) {
-      if (m_pheromones[k].lifetime > 0) {
-        if (m_pheromones[k].type == 0) {
-          defaultColor.SetRed(255);
-          defaultColor.SetGreen(0 + m_pheromones[k].lifetime);
-          defaultColor.SetBlue(255);
-        }
-        else {
-          defaultColor.SetRed(0 + m_pheromones[k].lifetime);
-          defaultColor.SetGreen(200);
-          defaultColor.SetBlue(255);
-        }
-        return defaultColor;
-      }
-    }
-  }
-  /* Returns Green otherwise (the wild) */
-  return CColor::GREEN;
 }
 
   /****************************************/
@@ -303,6 +289,103 @@ void CPiPuckForagingLoopFunctions::EraseExpiredPheromones() {
   /****************************************/
   /****************************************/
 
+void CPiPuckForagingLoopFunctions::ResetFloor() {
+  for (int i = 0; i < (arenaFloorX*arenaFloorY); i++){
+    arenaPixelArray[i] = CColor::BLACK;
+  }
+}
+
+  /****************************************/
+  /****************************************/
+
+void CPiPuckForagingLoopFunctions::UpdateFloor() {
+  ResetFloor();
+  CVector2 cPos;
+  for (int i = 0; i < (arenaFloorX*arenaFloorY); i++) {
+    cPos = CVector2((i % arenaFloorX), (i/arenaFloorX));
+    cPos /= pixelsPerMeter;
+    cPos -= CVector2((arenaSize.GetX()/2), (arenaSize.GetY()/2));
+
+    if (cPos.GetX() < -1.5f) {
+      arenaPixelArray[i] = CColor::ORANGE;
+    }
+  }
+  /* Sets Red if the floor position is a food zone*/
+  for(UInt32 foodIndex = 0; foodIndex < m_foodZones.size(); foodIndex++) {
+    for (int i = 0; i < (arenaFloorX*arenaFloorY); i++) {
+      if (arenaPixelArray[i] == CColor::BLACK) {
+        cPos = CVector2((i % arenaFloorX), (i/arenaFloorX));
+        cPos /= pixelsPerMeter;
+        cPos -= CVector2((arenaSize.GetX()/2), (arenaSize.GetY()/2));
+        if((cPos - m_foodZones[foodIndex].zoneLocation).Length() < zoneRadius) {
+          arenaPixelArray[i] = CColor::RED;
+        }
+      }
+    }
+  }
+  /* Sets Blue if the floor position is a food zone*/
+  for(UInt32 waterIndex = 0; waterIndex < m_waterZones.size(); waterIndex++) {
+    for (int i = 0; i < (arenaFloorX*arenaFloorY); i++) {
+      if (arenaPixelArray[i] == CColor::BLACK) {
+        cPos = CVector2((i % arenaFloorX), (i/arenaFloorX));
+        cPos /= pixelsPerMeter;
+        cPos -= CVector2((arenaSize.GetX()/2), (arenaSize.GetY()/2));
+        if((cPos - m_waterZones[waterIndex].zoneLocation).Length() < zoneRadius) {
+          arenaPixelArray[i] = CColor::BLUE;
+        }
+      }
+    }
+  }
+  /* This chunk of code completely lags the simulator NEEDS OPTIMISING*/
+  for(UInt32 pIndex = 0; pIndex < m_pheromones.size(); pIndex++) {
+    // Moves to bottom corner of the circle "square" border
+    CVector2 c_position_on_plane = m_pheromones[pIndex].position - CVector2(pheromoneTrialRadius, pheromoneTrialRadius);
+    c_position_on_plane = clampToPixelValue(c_position_on_plane);
+    for (int y = 0; y < arenaFloorY; y++){
+      for (int x = 0; x < arenaFloorX; x++){
+        cPos = c_position_on_plane + CVector2(x/float(pixelsPerMeter), y/float(pixelsPerMeter));
+        if((cPos - m_pheromones[pIndex].position).Length() < pheromoneTrialRadius) {
+          // Position within Radius. Need to calculate index
+          cPos += CVector2(arenaSize.GetX()/2, arenaSize.GetY()/2);
+          cPos *= pixelsPerMeter;
+          int index = int(cPos.GetX() + (cPos.GetY()) * arenaFloorX);
+          if (arenaPixelArray[index] == CColor::BLACK
+                      || (arenaPixelArray[index].GetRed() == 255 && arenaPixelArray[index].GetGreen() >= 0 && arenaPixelArray[index].GetBlue() == 255)
+                      || (arenaPixelArray[index].GetRed() >= 0 && arenaPixelArray[index].GetGreen() == 200 && arenaPixelArray[index].GetBlue() == 255)) {
+            if (m_pheromones[pIndex].type == 0) {
+              defaultColor.SetRed(255);
+              defaultColor.SetGreen(0 + m_pheromones[pIndex].lifetime);
+              defaultColor.SetBlue(255);
+            }
+            else if (m_pheromones[pIndex].type == 1) {
+              defaultColor.SetRed(0 + m_pheromones[pIndex].lifetime);
+              defaultColor.SetGreen(200);
+              defaultColor.SetBlue(255);
+            }
+            arenaPixelArray[index] = defaultColor;
+          }
+        }
+        else if ((x/pixelsPerMeter) > (2 * pheromoneTrialRadius)){
+          break;
+        }
+      }
+      if ((y/pixelsPerMeter) > (2* pheromoneTrialRadius)) {
+        break;
+      }
+    }
+  }
+
+  for (int i = 0; i < (arenaFloorX*arenaFloorY); i++){
+    if (arenaPixelArray[i] == CColor::BLACK) {
+      arenaPixelArray[i] = CColor::GREEN;
+    }
+  }
+  m_pcFloor->SetChanged();
+}
+
+  /****************************************/
+  /****************************************/
+
 void CPiPuckForagingLoopFunctions::PreStep() {
   // Record start time
   // auto start = std::chrono::high_resolution_clock::now();
@@ -323,7 +406,7 @@ void CPiPuckForagingLoopFunctions::PreStep() {
     cPos.Set(cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position.GetX(),
               cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position.GetY());
 
-    if ((floorColor == CColor::GREEN ||
+    if ((floorColor == CColor::GREEN || floorColor == CColor::BLACK ||
           (floorColor.GetRed() == 255 && floorColor.GetGreen() >= 0 && floorColor.GetBlue() == 255) ||
           (floorColor.GetRed() >= 0 && floorColor.GetGreen() == 200 && floorColor.GetBlue() == 255))
           && pheromoneTrialEnabled && SZoneData.hasZone) {
@@ -360,14 +443,10 @@ void CPiPuckForagingLoopFunctions::PreStep() {
   }
 
   if (pheromoneTrialEnabled) {
-    if (SimulationTime % 10 == 0) {
-      std::cout << m_pheromones.size() << std::endl;
-    }
     DeductPheromoneLifetime();
     EraseExpiredPheromones();
   }
-
-  m_pcFloor->SetChanged();
+  UpdateFloor();
 
   // Record start time
   // auto finish = std::chrono::high_resolution_clock::now();

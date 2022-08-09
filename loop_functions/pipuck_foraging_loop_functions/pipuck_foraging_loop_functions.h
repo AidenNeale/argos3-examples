@@ -62,6 +62,9 @@ namespace argos {
     void DrawPheromoneTrials(CVector2, CPiPuckForaging::SZoneData&);
     void DeductPheromoneLifetime();
     void EraseExpiredPheromones();
+    void UpdateFloor();
+    void ResetFloor();
+    CVector2 clampToPixelValue(CVector2 c_position_on_plane);
     virtual CColor GetFloorColor(const CVector2& c_position_on_plane);
     virtual void PreStep();
 
@@ -69,8 +72,11 @@ namespace argos {
   private:
     CRange<Real> m_cForagingArenaSideX, m_cForagingArenaSideY;
     CFloorEntity* m_pcFloor;
+    CColor * arenaPixelArray;
+    CVector3 arenaSize;
+    UInt16 arenaFloorX, arenaFloorY;
     CRandom::CRNG* m_pcRNG;
-
+    int pixelsPerMeter;
     // std::list<SVirtualPheromone> m_pheromones;
     std::vector<SVirtualPheromone> m_pheromones;
 
