@@ -30,6 +30,7 @@ CPiPuckForaging::CPiPuckForaging() :
    pcWheels(NULL),
    pcGround(NULL),
    pcProximity(NULL),
+   pcLight(NULL),
    m_fWheelVelocity(2.5f) {}
 
 /****************************************/
@@ -61,6 +62,7 @@ void CPiPuckForaging::Init(TConfigurationNode& t_node) {
     pcWheels = GetActuator<CCI_PiPuckDifferentialDriveActuator>("pipuck_differential_drive");
     pcGround = GetSensor<CCI_PiPuckGroundColourSensor>("pipuck_ground_colour");
     pcProximity = GetSensor<CCI_PiPuckRangefindersSensor>("pipuck_rangefinders");
+    pcLight = GetSensor<CCI_LightSensor>("light");
 
     m_sStateData.Reset();
 }
@@ -91,7 +93,71 @@ void CPiPuckForaging::ControlStep() {
 /****************************************/
 
 void CPiPuckForaging::ReturnToNest() {
+  readGroundColorSensor();
+  if (groundColor == CColor::BLUE) {
+    m_sZoneData.hasZone = true;
+    m_sZoneData.ZoneType = 1;
+  }
+  else if (groundColor == CColor::RED) {
+    m_sZoneData.hasZone = true;
+    m_sZoneData.ZoneType = 0;
+  }
+  else if (groundColor == CColor::ORANGE){
+    m_sStateData.State = SStateData::STATE_RANDOM_WALK;
+    m_sZoneData.Reset();
+  }
 
+  CRadians orientation = getCurrentOrientation();
+  CRadians desiredOrientation = getDesiredOrientation();
+
+  CRadians differenceInOrientation = desiredOrientation - orientation;
+
+  std::cout << "My current orientation is: " << orientation <<
+            ", My desired orientation is: " << desiredOrientation <<
+            ", My difference in orientation is: " << differenceInOrientation << std::endl;
+
+
+  std::vector<Real> vecReadings;
+  Real Readings[8], left, right, totalReadings, workings;
+
+  left = 0.0;
+  right = 0.0;
+  if (abs(ToDegrees(differenceInOrientation).GetValue() > 0.0)) {
+    if (ToDegrees(differenceInOrientation).GetValue() > 0.0) {
+      workings = (360 - abs(ToDegrees(differenceInOrientation).GetValue()));
+    }
+    else {
+    workings = - (360 - abs(ToDegrees(differenceInOrientation).GetValue()));
+    }
+  }
+  if (workings > 20.0 && workings < 340.0) {
+    left = 0.2;
+    right = 0.5;
+  }
+  else if (workings < -20.0 && workings > -340.0){
+    left = 0.5;
+    right = 0.2;
+  }
+  else {
+    left = 0.5;
+    right = 0.5;
+  }
+
+
+
+  readProximitySensor(vecReadings, Readings);
+
+  totalReadings = 0;
+
+  for (Real r : Readings) {
+    totalReadings += r;
+  }
+  if (totalReadings < 0.79) {
+    std::cout << totalReadings << std::endl;
+    obstacleAvoidance(Readings, &left, &right);
+  }
+  std::cout << "L: " << left << " R: " << right << std::endl;
+  pcWheels->SetLinearVelocity(left, right);
 }
 
 /****************************************/
@@ -109,49 +175,37 @@ void CPiPuckForaging::RandomWalk() {
   if (groundColor == CColor::BLUE) {
     m_sZoneData.hasZone = true;
     m_sZoneData.ZoneType = 1;
+    m_sStateData.State = SStateData::STATE_RETURN_TO_NEST;
   }
   else if (groundColor == CColor::RED) {
     m_sZoneData.hasZone = true;
     m_sZoneData.ZoneType = 0;
+    m_sStateData.State = SStateData::STATE_RETURN_TO_NEST;
   }
   else if (groundColor == CColor::ORANGE) {
     m_sZoneData.Reset();
   }
 
   std::vector<Real> vecReadings;
-  Real Readings[8];
-  pcProximity->Visit([&vecReadings, &Readings] (const CCI_PiPuckRangefindersSensor::SInterface& s_interface)
-  {
-      vecReadings.emplace_back(s_interface.Proximity);
-      Readings[s_interface.Label] = s_interface.Proximity;
+  Real Readings[8], left, right;
 
-      /*
-      These output phrases are useful for debugging and understanding the
-      example however cause the simulator to slow down to the sheer quantity of logging
-      performed with 50 pipucks (8 messages per range finder sensor per robot)
-      */
+  readProximitySensor(vecReadings, Readings);
 
-      // std::cout << "Label: " << s_interface.Label << std::endl;
-      // std::cout << "Proximity: " << s_interface.Proximity << std::endl;
+  obstacleAvoidance(Readings, &left, &right);
 
-      // const CCI_PiPuckRangefindersSensor::TConfiguration configuration = s_interface.Configuration;
-      // std::cout << "Configuration:" << std::endl;
-      // std::cout << "Name: " << std::get<0>(configuration) << std::endl;
-      // std::cout << "Position: " << std::get<1>(configuration) << std::endl;
-      // std::cout << "Orientation: " << std::get<2>(configuration) << std::endl;
-      // std::cout << "Range: " << std::get<3>(configuration) << std::endl;
+  pcWheels->SetLinearVelocity(left, right);
+}
 
-      // std::cout << std::endl;
-  });
-  Real left = 0.5;
-  Real right = 0.5;
+/****************************************/
+/****************************************/
 
+void CPiPuckForaging::obstacleAvoidance(Real* Readings, Real* left, Real* right) {
   if(Readings[0] < 0.1)
   {
     if(Readings[7] < 0.1)
     {
-      left = -0.2;
-      right = 0.2;
+      *left = -0.2;
+      *right = 0.2;
     }
     else
     {
@@ -159,19 +213,19 @@ void CPiPuckForaging::RandomWalk() {
       {
         if(Readings[2] < 0.1)
         {
-          left = -0.1;
-          right = 0.2;
+          *left = -0.1;
+          *right = 0.2;
         }
         else
         {
-          left = -0.1;
-          right = 0.1;
+          *left = -0.1;
+          *right = 0.1;
         }
       }
       else
       {
-        left = 0.0;
-        right = 0.2;
+        *left = 0.0;
+        *right = 0.2;
       }
     }
   }
@@ -181,31 +235,38 @@ void CPiPuckForaging::RandomWalk() {
     {
       if(Readings[5] < 0.1)
       {
-        left = 0.2;
-        right = -0.1;
+        *left = 0.2;
+        *right = -0.1;
       }
       else
       {
-        left = 0.1;
-        right = -0.1;
+        *left = 0.1;
+        *right = -0.1;
       }
     }
     else
     {
-      right = 0.0;
-      left = 0.2;
+      *right = 0.0;
+      *left = 0.2;
     }
   }
   else
   {
-    left = 0.5;
-    right = 0.5;
+    *left = 0.5;
+    *right = 0.5;
   }
-
-
-  pcWheels->SetLinearVelocity(left, right);
 }
 
+/****************************************/
+/****************************************/
+
+void CPiPuckForaging::readProximitySensor(std::vector<Real> vecReadings, Real* Readings) {
+  pcProximity->Visit([&vecReadings, Readings] (const CCI_PiPuckRangefindersSensor::SInterface& s_interface)
+  {
+    vecReadings.emplace_back(s_interface.Proximity);
+    Readings[s_interface.Label] = s_interface.Proximity;
+  });
+}
 
 /****************************************/
 /****************************************/

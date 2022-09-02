@@ -17,13 +17,14 @@
   <controllers>
 
     <pipuck_foraging_controller id="fdc"
-                                        library="build/controllers/pipuck_foraging/libpipuck_foraging.so">
+                                library="build/controllers/pipuck_foraging/libpipuck_foraging.so">
       <actuators>
         <pipuck_differential_drive implementation="default" />
       </actuators>
       <sensors>
         <pipuck_ground_colour implementation="default" show_rays="true"/>
         <pipuck_rangefinders implementation="default" show_rays="true"/>
+        <light implementation="default" show_rays="false"/>
       </sensors>
       <params/>
     </pipuck_foraging_controller>
@@ -37,7 +38,7 @@
     <foraging foodZones="2"
               waterZones="2"
               finiteZones="true"
-              zoneLifetime="100"
+              zoneLifetime="50"
               zoneRadius="0.3" />
     <!-- Stigmergy type breakout
         Enabled           -> bool
@@ -45,7 +46,7 @@
         rateOfEvaporation -> float -->
     <stigmergy enabled="true"
                pheromoneRadius="0.035"
-               rateOfEvaporation="0.15"
+               rateOfEvaporation="0.01"
                 />
   </loop_functions>
 
@@ -55,7 +56,7 @@
   <arena size="4, 4, 2" center="0,0,1">
     <floor id="floor"
           source="loop_functions"
-          pixels_per_meter="50" />
+          pixels_per_meter="100" />
 
     <box id="wall_north" size="4,0.1,0.5" movable="false">
       <body position="0,2,0" orientation="0,0,0" />
@@ -70,30 +71,30 @@
       <body position="-2,0,0" orientation="0,0,0" />
     </box>
 
-    <light id="light_1"
-           position="-2,-1.5,1.0"
+    <!-- <light id="light_1"
+           position="-1.9,-1.5,1.0"
            orientation="0,0,0"
            color="yellow"
-           intensity="3.0"
-           medium="leds" />
+           intensity="0.5"
+           medium="leds" /> -->
     <light id="light_2"
-           position="-2,-0.5,1.0"
+           position="-1.9,0.0,1.0"
            orientation="0,0,0"
            color="yellow"
-           intensity="3.0"
+           intensity="0.5"
            medium="leds" />
-    <light id="light_3"
-           position="-2,0.5,1.0"
+    <!-- <light id="light_3"
+           position="-1.9,0.5,1.0"
            orientation="0,0,0"
            color="yellow"
-           intensity="3.0"
+           intensity="0.5"
            medium="leds" />
     <light id="light_4"
-           position="-2,1.5,1.0"
+           position="-1.9,1.5,1.0"
            orientation="0,0,0"
            color="yellow"
-           intensity="3.0"
-           medium="leds" />
+           intensity="0.5"
+           medium="leds" /> -->
 
     <!--
         You can distribute entities randomly. Here, we distribute
@@ -107,7 +108,7 @@
     <distribute>
       <position method="uniform" min="-2,-2,0" max="-1.5,2,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="10" max_trials="100">
+      <entity quantity="1" max_trials="100">
         <pipuck id="fb">
           <controller config="fdc" />
         </pipuck>

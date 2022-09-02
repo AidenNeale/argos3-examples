@@ -13,7 +13,7 @@ namespace argos {
     [X] Different Alpha levels - strongest at zone, weaker as moves away
     [X] Robots control turning pheromones on/off
     Use of Light Sensor to return pipucks to nest
-    Optimisation of drawing getFloorColor()
+    [X] Optimisation of drawing getFloorColor()
       Turn loop through floor into array of [widthxheight] and map each index to a CColor
 
    ****************************************/
@@ -407,9 +407,39 @@ void CPiPuckForagingLoopFunctions::PreStep() {
 
     /* Get the position of the pipuck on the ground as a CVector2 */
     CVector2 cPos;
-    cPos.Set(cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position.GetX(),
-              cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position.GetY());
+    CVector3 cPos3D = cPipuck.GetEmbodiedEntity().GetOriginAnchor().Position;
+    cPos.Set(cPos3D.GetX(), cPos3D.GetY());
 
+
+    CRadians cZAngle, cYAngle, cXAngle;
+    CQuaternion c_quaternion = cPipuck.GetEmbodiedEntity().GetOriginAnchor().Orientation;
+    c_quaternion.ToEulerAngles(cZAngle, cYAngle, cXAngle);
+
+    // std::cout << c_quaternion << "Also This: " << cZAngle << std::endl;
+
+    cController.setCurrentPosition(cPos);
+    if (cController.getStateData().State == CPiPuckForaging::SStateData::STATE_RETURN_TO_NEST) {
+      auto itLights = GetSpace().GetEntityMapPerTypePerId().find("light");
+      if (itLights != GetSpace().GetEntityMapPerTypePerId().end()) {
+        CSpace::TMapPerType& mapLights = itLights->second;
+        /*
+        * 1. Go through the list of light entities in the scene
+        * 2. Calculate the angle between each light and pi-puck
+        * 3. Sum the above
+        */
+        for(auto it = mapLights.begin(); it != mapLights.end(); ++it) {
+          CVector2 lightPos;
+          /* Get a reference to the light */
+          CLightEntity& cLight = *(any_cast<CLightEntity*>(it->second));
+          lightPos.Set(cLight.GetPosition().GetX(), cLight.GetPosition().GetY());
+          CVector2 vectorBetweenRobotAndLight = lightPos - cPos;
+          cController.setCurrentOrientation(cZAngle);
+          cController.setDesiredOrientation(vectorBetweenRobotAndLight.Angle());
+          std::cout << "Angle Needed: " << vectorBetweenRobotAndLight.Angle() <<
+          ", Current Bearing: " << cZAngle << std::endl;
+        }
+      }
+    }
     if ((floorColor == CColor::GREEN || floorColor == CColor::BLACK ||
           (floorColor.GetRed() == 255 && floorColor.GetGreen() >= 0 && floorColor.GetBlue() == 255) ||
           (floorColor.GetRed() >= 0 && floorColor.GetGreen() == 200 && floorColor.GetBlue() == 255))

@@ -18,6 +18,11 @@
  */
 /* Definition of the CCI_Controller class. */
 #include <argos3/core/control_interface/ci_controller.h>
+
+#include <argos3/core/simulator/space/space.h>
+
+#include <argos3/plugins/robots/generic/control_interface/ci_light_sensor.h>
+
 /* Definition of the differential steering actuator */
 #include <argos3/plugins/robots/pi-puck/control_interface/ci_pipuck_differential_drive_actuator.h>
 /* Definition of the Pipuck Rangefinders sensor */
@@ -154,7 +159,11 @@ public:
 
   void FollowPheromoneTrial();
 
+  void readProximitySensor(std::vector<Real> vecReadings, Real* Readings);
+
   void readGroundColorSensor();
+
+  void obstacleAvoidance(Real*, Real*, Real*);
 
   inline CColor getGroundColor() {
     return groundColor;
@@ -162,6 +171,38 @@ public:
 
   inline void setGroundColor(CColor color) {
     groundColor = color;
+  }
+
+  inline CVector2 getCurrentPosition() {
+    return currentPosition;
+  }
+
+  inline void setCurrentPosition(CVector2 currentPos) {
+    currentPosition = currentPos;
+  }
+
+  inline CRadians getCurrentOrientation() {
+    return currentOrientiation;
+  }
+
+  inline void setCurrentOrientation(CRadians orientiation) {
+    currentOrientiation = orientiation;
+  }
+
+  inline CRadians getDesiredOrientation() {
+    return orientationToLight;
+  }
+
+  inline void setDesiredOrientation(CRadians orientiation) {
+    orientationToLight = orientiation;
+  }
+
+  inline SStateData getStateData() {
+    return m_sStateData;
+  }
+
+  inline void setCurrentPosition(SStateData stateData) {
+    m_sStateData = stateData;
   }
 
   /*
@@ -179,10 +220,20 @@ private:
   CCI_PiPuckRangefindersSensor* pcProximity;
   /* Pointer to the pi-puck ground colour sensor */
   CCI_PiPuckGroundColourSensor* pcGround;
+  /* Pointer to the generic robot light sensor */
+  CCI_LightSensor* pcLight;
 
   bool pheromonesOn;
 
+  double lightLevel = 0;
+
   CColor groundColor;
+
+  CVector2 currentPosition;
+
+  CRadians currentOrientiation;
+
+  CRadians orientationToLight;
 
   /* Wheel speed. */
   Real m_fWheelVelocity;
@@ -191,7 +242,6 @@ private:
 
   /* The controller state information */
   SStateData m_sStateData;
-
 };
 
 #endif
