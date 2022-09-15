@@ -223,8 +223,6 @@ void CPiPuckForagingLoopFunctions::Destroy() {
   /****************************************/
 
 CVector2 CPiPuckForagingLoopFunctions::clampToPixelValue(CVector2 c_position_on_plane) {
-  // std::cout << (c_position_on_plane) << std::endl;
-
   c_position_on_plane.Set(round(c_position_on_plane.GetX()*pixelsPerMeter), round(c_position_on_plane.GetY()*pixelsPerMeter));
   return ((c_position_on_plane) / float(pixelsPerMeter));
 }
@@ -232,7 +230,6 @@ CVector2 CPiPuckForagingLoopFunctions::clampToPixelValue(CVector2 c_position_on_
 CColor CPiPuckForagingLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane) {
   /* Returns Orange if the floor position is within the "nest" */
   CVector2 indexing = clampToPixelValue(c_position_on_plane);
-  // std::cout << "This is after clamping: " << indexing << std::endl;
   indexing += CVector2(arenaSize.GetX()/2, arenaSize.GetY()/2);
   indexing *= pixelsPerMeter;
   return arenaPixelArray[int(indexing.GetX() + (indexing.GetY()) * arenaFloorX)];
@@ -415,7 +412,6 @@ void CPiPuckForagingLoopFunctions::PreStep() {
     CQuaternion c_quaternion = cPipuck.GetEmbodiedEntity().GetOriginAnchor().Orientation;
     c_quaternion.ToEulerAngles(cZAngle, cYAngle, cXAngle);
 
-    // std::cout << c_quaternion << "Also This: " << cZAngle << std::endl;
 
     cController.setCurrentPosition(cPos);
     if (cController.getStateData().State == CPiPuckForaging::SStateData::STATE_RETURN_TO_NEST) {
@@ -435,8 +431,8 @@ void CPiPuckForagingLoopFunctions::PreStep() {
           CVector2 vectorBetweenRobotAndLight = lightPos - cPos;
           cController.setCurrentOrientation(cZAngle);
           cController.setDesiredOrientation(vectorBetweenRobotAndLight.Angle());
-          std::cout << "Angle Needed: " << vectorBetweenRobotAndLight.Angle() <<
-          ", Current Bearing: " << cZAngle << std::endl;
+          // std::cout << "Angle Needed: " << vectorBetweenRobotAndLight.Angle() <<
+          // ", Current Bearing: " << cZAngle << std::endl;
         }
       }
     }
