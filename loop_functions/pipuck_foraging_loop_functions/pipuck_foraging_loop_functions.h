@@ -78,9 +78,8 @@ namespace argos {
     UInt16 arenaFloorX, arenaFloorY;
     CRandom::CRNG* m_pcRNG;
     int pixelsPerMeter;
-    // std::list<SVirtualPheromone> m_pheromones;
-    std::vector<SVirtualPheromone> m_pheromones;
 
+    std::vector<SVirtualPheromone> m_pheromones;
     std::vector<SZoneData> m_foodZones;
     std::vector<SZoneData> m_waterZones;
     UInt32 numFoodZones, numWaterZones;
