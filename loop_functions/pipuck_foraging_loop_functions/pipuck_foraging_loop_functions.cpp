@@ -441,7 +441,9 @@ void CPiPuckForagingLoopFunctions::PreStep() {
           (floorColor.GetRed() >= 0 && floorColor.GetGreen() == 200 && floorColor.GetBlue() == 255))
           && pheromoneTrialEnabled && SZoneData.hasZone) {
       // Robot is in the wild, pheromone trials can be drawn
-      DrawPheromoneTrials(cPos, SZoneData);
+      if (SimulationTime % 3 == 0) {
+        DrawPheromoneTrials(cPos, SZoneData);
+      }
     }
     else if (floorColor == CColor::ORANGE) {
       // Robot in Nest
