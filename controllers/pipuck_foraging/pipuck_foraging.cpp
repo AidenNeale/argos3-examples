@@ -21,7 +21,9 @@ CPiPuckForaging::SStateData::SStateData() :
 
 void CPiPuckForaging::SStateData::Reset() {
   State = STATE_RANDOM_WALK;
+  Direction = NOT_DETECTED;
   InNest = true;
+  CounterInCurrentDirection = 0;
 }
 /****************************************/
 /****************************************/
@@ -84,13 +86,18 @@ void CPiPuckForaging::ControlStep() {
     ReturnToNest();
     break;
 
-  case SStateData::STATE_FOLLOW_PHEROMONE:
-    FollowPheromoneTrial();
+  case SStateData::STATE_FOUND_PHEROMONE:
+    FoundPheromoneTrial();
+    break;
+
+  case SStateData::STATE_IN_PHEROMONE:
+    InPheromoneTrial();
     break;
 
   case SStateData::STATE_RANDOM_WALK:
     RandomWalk();
     break;
+
   default:
     break;
   }
@@ -138,16 +145,88 @@ void CPiPuckForaging::ReturnToNest() {
     right = 0.3;
   }
 
-  // std::cout << "L: " << left << " R: " << right << std::endl;
   pcWheels->SetLinearVelocity(left, right);
 }
 
 /****************************************/
 /****************************************/
 
-void CPiPuckForaging::FollowPheromoneTrial() {
+void CPiPuckForaging::FoundPheromoneTrial() {
+  /* In this state if a robot has gone through a
+     pheromone trail and is redirecting to follow it */
+  Real left, right;
   readGroundColorSensor();
-  Real left = 0.3, right = 0.3;
+  m_sStateData.CounterInCurrentDirection += 1;
+
+  if (m_sStateData.CounterInCurrentDirection >= 30) {
+    m_sStateData.CounterInCurrentDirection = 0;
+    m_sStateData.State = SStateData::STATE_RANDOM_WALK;
+  }
+
+  if (groundColor == CColor::BLUE){
+    m_sStateData.CounterInCurrentDirection = 0;
+    m_sZoneData.hasZone = true;
+    m_sZoneData.ZoneType = 1;
+    m_sStateData.State = SStateData::STATE_RETURN_TO_NEST;
+  }
+  else if (groundColor == CColor::RED){
+    m_sStateData.CounterInCurrentDirection = 0;
+    m_sZoneData.hasZone = true;
+    m_sZoneData.ZoneType = 0;
+    m_sStateData.State = SStateData::STATE_RETURN_TO_NEST;
+  }
+  else if (groundColor == CColor::ORANGE){
+    m_sStateData.Reset();
+  }
+
+  else if (groundColor == CColor::BLACK){
+    m_sStateData.CounterInCurrentDirection = 0;
+    CColor sensors[3];
+    getGroundColorSensor(sensors);
+
+    if ((sensors[1].GetRed() == 255 && sensors[1].GetGreen() >= 0 && sensors[1].GetBlue() == 255) ||
+              (sensors[1].GetRed() >= 0 && sensors[1].GetGreen() == 200 && sensors[1].GetBlue() == 255)) {
+    if (m_sStateData.Direction == SStateData::LEFT){
+      m_sStateData.Direction = SStateData::RIGHT;
+    }
+    else {
+      m_sStateData.Direction = SStateData::LEFT;
+    }
+      m_sStateData.State = SStateData::STATE_IN_PHEROMONE;
+    }
+  }
+
+  else if(groundColor.GetRed() == 255 && groundColor.GetGreen() >= 0 && groundColor.GetBlue() == 255 ||
+              groundColor.GetRed() >= 0 && groundColor.GetGreen() == 200 && groundColor.GetBlue() == 255) {
+    m_sStateData.CounterInCurrentDirection = 0;
+    if (m_sStateData.Direction == SStateData::LEFT){
+      m_sStateData.Direction = SStateData::RIGHT;
+    }
+    else {
+      m_sStateData.Direction = SStateData::LEFT;
+    }
+    m_sStateData.State = SStateData::STATE_IN_PHEROMONE;
+  }
+
+
+  if (m_sStateData.Direction == SStateData::LEFT){
+    left = 0.18;
+    right = 0.3;
+  }
+  else if (m_sStateData.Direction == SStateData::RIGHT){
+    left = 0.3;
+    right = 0.18;
+  }
+
+  pcWheels->SetLinearVelocity(left, right);
+}
+
+/****************************************/
+/****************************************/
+
+void CPiPuckForaging::InPheromoneTrial() {
+  Real left, right;
+  readGroundColorSensor();
   if (groundColor == CColor::BLUE){
     m_sZoneData.hasZone = true;
     m_sZoneData.ZoneType = 1;
@@ -161,51 +240,40 @@ void CPiPuckForaging::FollowPheromoneTrial() {
   else if (groundColor == CColor::ORANGE){
     m_sStateData.Reset();
   }
-  // else if (groundColor == CColor::GREEN){
-  //   m_sStateData.State = SStateData::STATE_RANDOM_WALK;
-  // }
-  else if ((groundColor.GetRed() == 255 && groundColor.GetGreen() >= 0 && groundColor.GetBlue() == 255) || groundColor == CColor::BLACK){
-    CColor sensors[3];
-    getGroundColorSensor(sensors);
-    if (sensors[0].GetGreen() > sensors[2].GetGreen() && sensors[0].GetGreen() != 255){
-      left = 0.2;
-      right = -0.2;
-    }
-    else if (sensors[0].GetGreen() < sensors[2].GetGreen() && sensors[2].GetGreen() != 255){
-      left = -0.2;
-      right = 0.2;
-    }
-    else {
-      left = 0.2;
-      right = 0.2;
-    }
-    std::cout << "Sensor L: " << sensors[0] << " Sensor R: " << sensors[2] << std::endl;
+  if (groundColor == CColor::GREEN){
+    m_sStateData.State = SStateData::STATE_FOUND_PHEROMONE;
   }
-  else if ((groundColor.GetRed() >= 0 && groundColor.GetGreen() == 200 && groundColor.GetBlue() == 255) || groundColor == CColor::BLACK) {
-    CColor sensors[3];
-    getGroundColorSensor(sensors);
-    if (sensors[0].GetBlue() > sensors[2].GetBlue() && sensors[0].GetBlue() != 255){
-      left = 0.2;
-      right = -0.2;
-    }
-    else if (sensors[0].GetBlue() < sensors[2].GetBlue() && sensors[2].GetBlue() != 255){
-      left = -0.2;
-      right = 0.2;
-    }
-    else {
-      left = 0.2;
-      right = 0.2;
-    }
-    std::cout << "Sensor L: " << sensors[0] << " Sensor R: " << sensors[2] << std::endl;
-  }
-  pcWheels->SetLinearVelocity(left, right);
 
+  if (m_sStateData.Direction == SStateData::NOT_DETECTED){
+    int r = rand() % 2;
+    if (r == 0){
+      m_sStateData.Direction = SStateData::LEFT;
+    }
+    else {
+      m_sStateData.Direction = SStateData::RIGHT;
+    }
+  }
+  left = 0.3;
+  right = 0.3;
+  // if (m_sStateData.Direction == SStateData::LEFT){
+  //   left = 0.2;
+  //   right = 0.3;
+  // }
+  // else if (m_sStateData.Direction == SStateData::RIGHT){
+  //   left = 0.3;
+  //   right = 0.2;
+  // }
+  // std::cout << "Currently going " << m_sStateData.Direction << std::endl;
+  pcWheels->SetLinearVelocity(left, right);
 }
 
 /****************************************/
 /****************************************/
 
 void CPiPuckForaging::RandomWalk() {
+  Real Readings[8], left = 0.0, right = 0.0;
+  std::vector<Real> vecReadings;
+
   readGroundColorSensor();
   if (groundColor == CColor::BLUE) {
     m_sZoneData.hasZone = true;
@@ -225,25 +293,25 @@ void CPiPuckForaging::RandomWalk() {
     getGroundColorSensor(sensors);
     if ((sensors[1].GetRed() == 255 && sensors[1].GetGreen() >= 0 && sensors[1].GetBlue() == 255) ||
         (sensors[1].GetRed() >= 0 && sensors[1].GetGreen() == 200 && sensors[1].GetBlue() == 255)) {
-          m_sStateData.State = SStateData::STATE_FOLLOW_PHEROMONE;
-      }
+          m_sStateData.State = SStateData::STATE_IN_PHEROMONE;
+          left = 0.3;
+          right = 0.0;
+    }
   }
   // Food Pheromones
   else if (groundColor.GetRed() == 255 && groundColor.GetGreen() >= 0 && groundColor.GetBlue() == 255){
-    m_sStateData.State = SStateData::STATE_FOLLOW_PHEROMONE;
+    m_sStateData.State = SStateData::STATE_IN_PHEROMONE;
   }
   // Water Pheromones
   else if (groundColor.GetRed() >= 0 && groundColor.GetGreen() == 200 && groundColor.GetBlue() == 255) {
-    m_sStateData.State = SStateData::STATE_FOLLOW_PHEROMONE;
+    m_sStateData.State = SStateData::STATE_IN_PHEROMONE;
   }
 
-  std::vector<Real> vecReadings;
-  Real Readings[8], left, right;
+  if (left == 0.0 && right == 0.0) {
+    readProximitySensor(vecReadings, Readings);
 
-  readProximitySensor(vecReadings, Readings);
-
-  obstacleAvoidance(Readings, &left, &right);
-
+    obstacleAvoidance(Readings, &left, &right);
+  }
   pcWheels->SetLinearVelocity(left, right);
 }
 
@@ -251,60 +319,37 @@ void CPiPuckForaging::RandomWalk() {
 /****************************************/
 
 void CPiPuckForaging::obstacleAvoidance(Real* Readings, Real* left, Real* right) {
-  if(Readings[0] < 0.1)
-  {
-    if(Readings[7] < 0.1)
-    {
+  if (Readings[0] < 0.1){
+    if (Readings[1] < 0.1){
+    *left = -0.4;
+    *right = 0.2;
+    }
+    else{
       *left = -0.2;
       *right = 0.2;
     }
-    else
-    {
-      if(Readings[1] < 0.1)
-      {
-        if(Readings[2] < 0.1)
-        {
-          *left = -0.1;
-          *right = 0.2;
-        }
-        else
-        {
-          *left = -0.1;
-          *right = 0.1;
-        }
-      }
-      else
-      {
-        *left = 0.0;
-        *right = 0.2;
-      }
-    }
   }
-  else if(Readings[7] < 0.1)
-  {
-    if(Readings[6] < 0.1)
-    {
-      if(Readings[5] < 0.1)
-      {
-        *left = 0.2;
-        *right = -0.1;
-      }
-      else
-      {
-        *left = 0.1;
-        *right = -0.1;
-      }
-    }
-    else
-    {
-      *right = 0.0;
+  else if (Readings[7] < 0.1){
+    if (Readings[6] < 0.1){
       *left = 0.2;
+      *right = -0.4;
+    }
+    else {
+      *left = 0.2;
+      *right = -0.2;
     }
   }
-  else
-  {
-    *left = 0.3;
-    *right = 0.3;
+  // Default Wiggle Behaviour
+  else {
+    int r = rand() % 2;
+    if (r == 0) {
+      *left = 0.25;
+      *right = 0.3;
+    }
+    else {
+      *left = 0.3;
+      *right = 0.25;
+    }
   }
 }
 

@@ -62,13 +62,20 @@ public:
     /* The three possible states in which the controller can be */
     enum EState {
         STATE_RETURN_TO_NEST = 0,
-        STATE_FOLLOW_PHEROMONE = 1,
-        STATE_RANDOM_WALK = 2
+        STATE_FOUND_PHEROMONE = 1,
+        STATE_IN_PHEROMONE = 2,
+        STATE_RANDOM_WALK = 3
     } State;
+
+    enum PDirection {
+          NOT_DETECTED = 0,
+          RIGHT = 1,
+          LEFT = -1
+    } Direction;
 
     /* True when the robot is in the nest */
     bool InNest;
-
+    Real CounterInCurrentDirection;
     // /* Initial probability to switch from resting to exploring */
     // Real InitialRestToExploreProb;
     // /* Current probability to switch from resting to exploring */
@@ -157,7 +164,9 @@ public:
 
   void ReturnToNest();
 
-  void FollowPheromoneTrial();
+  void InPheromoneTrial();
+
+  void FoundPheromoneTrial();
 
   void readProximitySensor(std::vector<Real> vecReadings, Real* Readings);
 
@@ -236,6 +245,7 @@ private:
   CRadians currentOrientiation;
 
   CRadians orientationToLight;
+
 
   /* Wheel speed. */
   Real m_fWheelVelocity;
