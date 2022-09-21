@@ -453,8 +453,8 @@ void CPiPuckForagingLoopFunctions::PreStep() {
       for (int waterIndex = 0; waterIndex < m_waterZones.size(); waterIndex++) {
         // Loop through each zone to determine which zone the robot is within
         if ((cPos - m_waterZones[waterIndex].zoneLocation).Length() < zoneRadius) {
+          SZoneData.ZoneLifetime = m_waterZones[waterIndex].lifetime;
           if (finiteZones) {
-            SZoneData.ZoneLifetime = m_waterZones[waterIndex].lifetime;
             DeductZoneLifetime(floorColor, waterIndex);
           }
         }
@@ -465,8 +465,8 @@ void CPiPuckForagingLoopFunctions::PreStep() {
       for (int foodIndex = 0; foodIndex < m_foodZones.size(); foodIndex++) {
         // Loop through each zone to determine which zone the robot is within
         if ((cPos - m_foodZones[foodIndex].zoneLocation).Length() < zoneRadius) {
+          SZoneData.ZoneLifetime = m_foodZones[foodIndex].lifetime;
           if (finiteZones) {
-            SZoneData.ZoneLifetime = m_foodZones[foodIndex].lifetime;
             DeductZoneLifetime(floorColor, foodIndex);
           }
         }
