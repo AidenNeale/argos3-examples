@@ -253,8 +253,8 @@ void CPiPuckForaging::InPheromoneTrial() {
       m_sStateData.Direction = SStateData::RIGHT;
     }
   }
-  left = 0.3;
-  right = 0.3;
+  left = 0.2;
+  right = 0.2;
   // if (m_sStateData.Direction == SStateData::LEFT){
   //   left = 0.2;
   //   right = 0.3;
