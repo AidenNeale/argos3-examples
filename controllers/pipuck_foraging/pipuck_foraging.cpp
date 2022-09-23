@@ -158,7 +158,7 @@ void CPiPuckForaging::FoundPheromoneTrial() {
   readGroundColorSensor();
   m_sStateData.CounterInCurrentDirection += 1;
 
-  if (m_sStateData.CounterInCurrentDirection >= 30) {
+  if (m_sStateData.CounterInCurrentDirection >= 40) {
     m_sStateData.CounterInCurrentDirection = 0;
     m_sStateData.State = SStateData::STATE_RANDOM_WALK;
   }
